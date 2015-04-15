@@ -4,13 +4,13 @@ set -e # exit on error
 #set -x # debug mode
 
 pdir=/tmp
-rootdir=${pdir}/newroot # Has to be an empty dir
+rootdir=${pdir}/newroot
 cdir=${pdir}/overlay
 upperdir=${cdir}/upperdir
 workdir=${cdir}/work
 
 umount_all() {
-  if [[ "$rootdir" = ]] ; then
+  if [[ "$rootdir" = "" ]] ; then
     echo "Error! Cant dismount!"; return
   fi
   cd /
@@ -23,25 +23,35 @@ umount_all() {
     done
   done
 
-  umount $cdir
+  umount $cdir 2> /dev/null || :
 }
-trap umount_all EXIT
+err() {
+  echo $*
+  exit
+}
+
+# make sure $rootdir is an empty dir
+test -e $rootdir || mkdir $rootdir
+test -d $rootdir
+! test -e $rootdir/*
 
 # The file for the container can be given in four different ways:
 # * absolute path to file (exp: /home/bar/foo)
 # * relative path (exp: data/foo)
-# * pure filename (exp: foo) - IN THIS CASE IT WILL BE PUT IN THE URS-HOME-DIR
+# * -n and pure filename (exp: -n foo) - IN THIS CASE IT WILL BE PUT IN THE URS-HOME-DIR
 # * none - In this case we use ~/overlay
 if [[ $# -eq 0 ]]; then
   cfile=${HOME}/overlay
-else
-  if [[ "${1:0:1}" == "/" ]]; then
-    cfile=$1
-  elif echo $1 | grep / ; then
-    cfile=$(pwd)/$1
+elif [[ $# -eq 1 ]]; then
+  cfile=$(readlink -m $1)
+elif [[ $# -eq 2 ]]; then
+  if [[ "$1" = "-n" ]]; then
+    cfile=${HOME}/$(basename $2)
   else
-    cfile=${HOME}/$1
+    err "Wrong usage"
   fi
+else
+  err "Wrong usage"
 fi
 
 # Test if kernel uses grsecurity with chroot_deny_unix
@@ -61,6 +71,9 @@ if [[ ! -f $cfile ]]; then
   dd if=/dev/zero of=$cfile bs=4M count=250
   mkfs.ext4 -j $cfile
 fi
+
+# if anything fails make sure all mounts are cleaned up
+trap umount_all EXIT
 
 # Mount containerfile to containerdir
 mkdir -p $cdir
@@ -104,7 +117,6 @@ done
 
 # Start chroot
 chroot . xterm -e "echo -e '\e[1mWelcome to the Overlay-system! \e[0m \n\nAll changes made here will be written in the Imagefile. You will be back in the real-system when you exit this shell.'; export DISPLAY=${DISPLAY}; cd; bash"
-
 
 # unmount everything
 umount_all
