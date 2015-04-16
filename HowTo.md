@@ -3,12 +3,15 @@
 ## Basic systax
 
 To mount /upper on top of /lower into /merged do:
+
     $ mount mount -t overlay overlay -olowerdir=/lower,upperdir=/upper,workdir=/work /merged
 
 The syntax for an equilivant fstab-entry is accordingly:
+
     overlay /merged overlay lowerdir=/lower,upperdir=/upper,workdir=/work 0 0
 
 Since Kernel 4.0 you can use multible lower directories:
+
     mount -t overlay overlay -olowerdir=/lower1:/lower2:/lower3 /merged
 
 ## Limitations
@@ -26,15 +29,19 @@ You can use the same directory for multiples of the four folders used in the fir
 except for the workdir with must always be a seperate empty file.
 
 Quite usefull example – this mounts /upper on top of /lower and displays the result again in lower:
+
     $ mount mount -t overlay overlay -olowerdir=/lower,upperdir=/upper,workdir=/work /lower
 
 Analogously:
+
     $ mount mount -t overlay overlay -olowerdir=/lower,upperdir=/upper,workdir=/work /upper
 
 If you set upper and lower to the same path you get effectivly a bind-mount:
+
     $ mount mount -t overlay overlay -olowerdir=/lower,upperdir=/lower,workdir=/work /merged
 
 And finaly you can set them all to the same directory, wich doesn't do anything at all:
+
     $ mount mount -t overlay overlay -olowerdir=/lower,upperdir=/lower,workdir=/work /lower
 
 ## Nesting
