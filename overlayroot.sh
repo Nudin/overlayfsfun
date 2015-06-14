@@ -1,14 +1,14 @@
 #!/bin/bash
 
-set -e # exit on error
-#set -x # debug mode
+set -e      # exit on error
+#set -x     # debug mode
 
-pdir=/tmp
-rootdir=${pdir}/newroot
-cdir=${pdir}/overlay
-csize=256M # size of container
-upperdir=${cdir}/upperdir
-workdir=${cdir}/work
+pdir=/tmp                    # working directory
+rootdir=${pdir}/newroot      # mountpint of the new root
+cdir=${pdir}/overlay         # mountpint of the container
+csize=256M                   # size of container
+upperdir=${cdir}/upperdir    # 
+workdir=${cdir}/work         # the upper- and workdir are in the containerfile 
 
 
 err() {
@@ -16,6 +16,7 @@ err() {
    exit
 }
 
+# Undo all mount made by this script
 umount_all() {
    if [[ "$rootdir" = "" ]] ; then
       echo "Error: Can't dismount."; return
