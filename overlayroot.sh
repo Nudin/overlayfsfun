@@ -6,22 +6,30 @@ set -e # exit on error
 pdir=/tmp
 rootdir=${pdir}/newroot
 cdir=${pdir}/overlay
+csize=64 # size of container in MByte
 upperdir=${cdir}/upperdir
 workdir=${cdir}/work
 
+if [ $EUID -ne 0 ]; then
+    echo "Error: This script must be run as root."
+    exit 1
+fi
+
 umount_all() {
   if [[ "$rootdir" = "" ]] ; then
-    echo "Error! Cant dismount!"; return
+    echo "Error: Can't dismount."; return
   fi
   cd /
   cleaned=0
-  # unmount recursivly until all mounts in $rootdir are gone
+  echo -n "Releasing mounts within container: " 
+  # unmount recursively until all mounts in $rootdir are gone
   while [[ $cleaned -eq 0 ]]; do
     cleaned=1
 	for i in $(cat /proc/mounts | awk '{print $2}' | grep "^$rootdir" | sort -r); do
        umount 2>/dev/null "${i/\\040/ }" && echo "umounted ${i/\\040/ } succesfully" || cleaned=0
     done
   done
+    echo " done."
 
   umount $cdir 2> /dev/null || :
 }
@@ -31,8 +39,7 @@ err() {
 }
 
 # make sure $rootdir is an empty dir
-test -e $rootdir || mkdir $rootdir
-test -d $rootdir
+test -d $rootdir || mkdir -p $rootdir
 ! test -e $rootdir/*
 
 # The file for the container can be given in four different ways:
@@ -68,8 +75,8 @@ modprobe overlay
 # create otherwise
 echo $cfile 
 if [[ ! -f $cfile ]]; then
-  dd if=/dev/zero of=$cfile bs=4M count=250
-  mkfs.ext4 -j $cfile
+  dd if=/dev/zero of=$cfile bs=1M count=$csize status=none
+  mkfs.ext4 -qF $cfile
 fi
 
 # if anything fails make sure all mounts are cleaned up
@@ -95,16 +102,16 @@ mount --rbind /run run/
 # Mount all additional partitions
 a=()
 for i in $(cat /proc/mounts | awk '{print $2}' | grep "^/" | \
-           grep -v -e "^/run" -e "^/sys" -e "^/dev" -e "^/proc" -e "^/$" | \
+           egrep -v '^/(run|sys|dev|proc|$)' |\
            awk '{ print length, $0 }' | sort -n | cut -d" " -f2-); do
     for j in ${a[*]}; do
-      if echo $i | grep "^$j" > /dev/null; then
+      if echo "$i" | grep -q "^$j"; then
         continue 2
       fi
     done
-    echo mount --rbind $i .$i
-    mount --rbind $i .$i
-    a[${#a[*]}]=$i
+    echo mount --rbind "$i" ".$i"
+    mount --rbind "$i" ".$i"
+    a[${#a[*]}]="$i"
 done
 
 # Allow connection to X-Server from within chroot
