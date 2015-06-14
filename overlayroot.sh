@@ -6,7 +6,7 @@ set -e # exit on error
 pdir=/tmp
 rootdir=${pdir}/newroot
 cdir=${pdir}/overlay
-csize=256 # size of container in MByte
+csize=256M # size of container
 upperdir=${cdir}/upperdir
 workdir=${cdir}/work
 
@@ -76,7 +76,7 @@ modprobe overlay
 # create otherwise
 echo $cfile 
 if [[ ! -f $cfile ]]; then
-   dd if=/dev/zero of=$cfile bs=1M count=$csize status=none
+   truncate -s $csize empty
    mkfs.ext4 -qF $cfile
 fi
 
