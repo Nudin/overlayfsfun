@@ -1,0 +1,201 @@
+\documentclass[11pt]{beamer}
+\usetheme{Warsaw}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{shapes.multipart}
+\usetikzlibrary{shapes,arrows}
+\usepackage{hyperref}
+
+\usepackage{soul}
+\author{Michael F. Schönitzer}
+\title{Overlayfs}
+
+%\setbeamercovered{transparent} 
+%\setbeamertemplate{navigation symbols}{} 
+%\logo{} 
+\institute{OpenSourceTreffen München} 
+%\date{} 
+%\subject{} 
+
+\newcommand{\pfeil}{$\qquad\rightarrow\;$}
+\newcommand{\pfeilk}{$\rightarrow\;$}
+
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\section{Union Mounts}
+\begin{frame}{Union Mounts / Overlaying Filesystems}
+
+\begin{figure}[tbp]
+\center
+\begin{tikzpicture}[
+  single/.style={draw, dashed, text centered, align=center, anchor=text, text centered, rounded corners, inner ysep=1ex, inner xsep=1ex},
+  double/.style={draw, solid, draw, fill=blue!20, anchor=text, text width=7em, text centered, rounded corners, inner ysep=2em, rectangle split, rectangle split parts=2},
+  triple/.style={draw, anchor=text, rectangle split,rectangle split parts=3}
+  ]
+  \node[single] {
+  merged/\\
+  
+  \tikz{\node[double] {
+     upper/
+    \nodepart{second}
+      lower/
+  };}
+  };
+\end{tikzpicture}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Union / Overlaying Filesystems}
+\begin{itemize}
+\item 1993: Inheriting File System (IFS)
+\item 2003: unionfs
+\item 2006: aufs
+\item 2012: overlayfs
+\item 2014: overlayfs im Kernel \textbf{3.18}
+\end{itemize}
+
+\end{frame}
+
+\section{Overlayfs}
+\begin{frame}{Overlayfs: Einschränkungen}
+\begin{itemize}
+\item lowerdir
+  \begin{itemize}
+  \only<1>{\item Beliebiges Dateisystem (incl. overlayfs)}
+  \only<2->{\item\st{Beliebiges Dateisystem (incl. overlayfs)}}
+  \item<2-> Nicht Caseinsensitive, automount, revalidate \\
+    \pfeil nicht fat32, NFS, ISO 9660/Joliet…
+  \end{itemize}
+\pause\pause
+
+\item upperdir
+  \begin{itemize}
+  \item Dateisystem mit bestimmten Features \\
+   \pfeil nicht NFS, fat32, ntfs…
+  \end{itemize}
+\pause
+
+\item workdir
+  \begin{itemize}
+  \item leer
+  \item selbes Dateisystem wie upperdir
+  \end{itemize}
+\end{itemize}
+  
+\end{frame}
+
+
+\begin{frame}{Overlayfs: Funktionsweise}
+\begin{itemize}
+ \item Datei/Ordner nur im unterem Verzeichnis \\ \pfeil zeige diese
+ \item Datei/Ordner nur im oberen Verzeichnis \\ \pfeil  zeige diese
+ \item Datei in beiden Verzeichnissen \\ \pfeil  zeige obere
+ \item Ordner in beiden Verzeichnissen \\ \pfeil merge, Metadaten vom oberen
+ \item Änderungen im Ziel \\ \pfeil werden im oberen durchgeführt
+ \\ \pfeil Whiteouts \hfill\pfeilk Device-Datei mit Nummer 0/0 
+ \\ \pfeil Opaque directories \hfill\pfeilk xattr trusted.overlay.opaque=y
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{block}{Verwendung:}\footnotesize
+mount -t overlay overlay \textbackslash \\ $\qquad\quad$
+-olowerdir=/lower,upperdir=/upper,workdir=/work /merged
+\end{block}
+\vfill
+
+\begin{block}{fstab:}\footnotesize
+overlay /merged/ overlay lowerdir=/lower,upperdir=/upper,workdir=/work 0 0
+\end{block}
+\vfill
+
+\begin{block}{Multiple lower layers (ab Kernel 4.0)}\footnotesize
+mount -t overlay overlay -olowerdir=/lower1:/lower2:/lower3 /merged
+\end{block}
+\end{frame}
+
+\section{Overlayroot}
+\begin{frame}
+
+\begin{block}{Kombination mit}
+bind-mounts, chroot, cgroups, unshare (namespaces)
+\end{block}
+\pause
+
+\begin{figure}[tbp]
+\center
+\tikzstyle{line} = [draw, -latex']
+\begin{tikzpicture}[node distance = 5cm, auto, align=center, text centered, rounded corners,  
+  souround/.style={draw, dashed, anchor=text, inner ysep=1ex, inner xsep=1ex},
+  single/.style={draw, solid, anchor=text, inner ysep=1ex, inner xsep=1ex, node distance = 1cm},
+  single2/.style={draw, densely dotted, anchor=text, inner ysep=1ex, inner xsep=1ex, node distance = 1cm},
+  double/.style={draw, solid, fill=blue!20, anchor=text, text width=7em, inner ysep=2em, rectangle split, rectangle split parts=2}  ]
+  \node (foo) {
+  
+  \tikz{
+  \node[single] (container)  {
+  containerfile
+  };
+  }
+\\ \\ \\};
+  
+  \node[souround, right of=foo] {
+  newroot/\\
+  
+  \tikz{\node[double] (upper) {
+     upper/
+    \nodepart{second}
+      /
+  };}
+  
+  
+  \tikz{
+  \node[single2] (proc)  {  proc  };
+  \node[single2, below of=proc] (sys)  {  sys  };
+  \node[single2, below of=sys] (dev)  {  dev  };
+  \node[single2, below of=dev] (run)  {  run  };
+  
+  }
+
+  };
+  
+  \path [line] (1.4,0.75) -- +(1,0);
+
+\end{tikzpicture}
+\end{figure}
+\pause
+
+
+\begin{block}{overlayroot.sh}
+\url{https://github.com/Nudin/overlayfsfun}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\center{\Huge
+Happy Hacking}
+
+\vfill
+{\scriptsize\begin{block}{Hinweis:}
+Ich such grade einen Job oder Praktikum im Linux-Umfeld. Hinweise gerne gesehen.
+\end{block}
+\vfill
+\includegraphics[scale=0.4]{cc} \\
+Alle Inhalte dieses Vortrags sind unter \href{https://creativecommons.org/licenses/by-sa/4.0/deed.de}{CC-BY-SA} 4.0.
+}
+\end{frame}
+
+
+
+\end{document}
