@@ -46,8 +46,8 @@ To mount a ramdisk-overlay over /etc do:
 
 alternatively you can put this in fstab (that was the reason I created tmpoverlay in the fist place):
 
-    %% /etc/fstab:
-    % tmpoverlay      /etc    fuse    defaults     0 0
+    # /etc/fstab:
+    tmpoverlay      /etc    fuse    defaults     0 0
 
 By default, tmpoverlay will mount the tmpfs to /tmp/overlay, except if /tmp is already in a tmpfs,
 in that case it will use this simply. You can give an alternative path with the option tmpdir.
