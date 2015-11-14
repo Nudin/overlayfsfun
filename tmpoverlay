@@ -1,0 +1,37 @@
+#!/bin/bash
+
+mountpoint=$1
+name=${mountpoint/\//}
+options=$3
+
+# Check if the got a tmpdir argument,
+# if so split it from the other options
+if echo $options | grep -q "tmpdir" ; then
+	tmpdir=$(echo $options | sed 's/.*tmpdir=\([^,]*\)/?.*/\1/')
+	options=$(echo $options | sed 's/tmpdir=\([^,]*\)//;s/,$//;s/^,//;s/,,/,/')
+fi
+
+if [ "$options" != "" ] ; then
+	options=",$options"
+fi
+
+# if no tmpdir was given we default to /overlays
+: ${tmpdir:=/tmp/overlays}
+
+# check that tmpdir is a directory
+[ ! -e ${tmpdir} ] && mkdir -p ${tmpdir}
+[ ! -d ${tmpdir} ] && echo "not at directory" && exit
+
+# check if tmpfs/ramfs is already mounted at tmpdir
+if [[ ! "$(stat -f -c%T /tmp)" =~ ^tmpfs|ramfs$ ]] ; then
+    mount tmpfs -t tmpfs ${tmpdir}
+fi
+
+work=${tmpdir}/work_$name/
+overlay=${tmpdir}/$name/
+
+mkdir -p $work
+mkdir -p $overlay
+
+mount -t overlay tmpoverlay -olowerdir=$mountpoint,upperdir=$overlay,workdir=$work$options $mountpoint
+
