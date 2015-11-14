@@ -7,7 +7,7 @@ All changes in this chroot-envirement are written into the imagefile instead of 
 This allows to have two states of your systems in parallel.
 
 ### Install
-Not needed you can simply run it.
+Not needed – you can simply run it.
 
 ### Usage
     # ./overlayroot containerfile
@@ -41,9 +41,11 @@ so that changes to this folder will be saved in RAM instead of disk.
 
 ### Usage
 To mount a ramdisk-overlay over /etc do:
+
     # mount tmpoverlay -t fuse /etc
 
 alternatively you can put this in fstab (that was the reason I created tmpoverlay in the fist place):
+
     %% /etc/fstab:
     % tmpoverlay      /etc    fuse    defaults     0 0
 
@@ -52,8 +54,8 @@ in that case it will use this simply. You can give an alternative path with the 
 
 ### Usage scenarios
 * You want to build a computer witch is safe to unplug without shutting down:
-** Make your root-fs (and all other partitions on harddrives) readonly by adding 'ro' the fstab and disable fsck
-** Mount a tmpfs to /tmp in the tmpfs
-** Add a tmpoverlay for /var in your fstab to allow programs to runn properly
-** Optionally add a tmpoverlay for all other directory you want to be able to write (most likely /etc)
-** Done! ;)
+ * Make your root-fs (and all other partitions on harddrives) readonly by adding 'ro' the fstab and disable fsck
+ * Mount a tmpfs to /tmp in the tmpfs
+ * Add a tmpoverlay for /var in your fstab to allow programs to runn properly
+ * Optionally add a tmpoverlay for all other directory you want to be able to write (most likely /etc)
+ * Done! ;)
