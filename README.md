@@ -18,13 +18,12 @@ not to your real filesystem.
 
     xterm # ls /
      bin   dev  home ...
-    xterm # rm -rf --no-preserve-root /
-    xterm # touch /allgone
-    xterm # ls /
-     allgone
+    xterm # touch /TEST
+    xterm # ls /TEST
+     TEST
     xterm # ^D
-    # ls /
-     bin   dev  home ...
+    # ls /TEST
+	 ls: cannot access /TEST: No such file or directory
 
 You can reopen the container to get back to the state you were in.
 
