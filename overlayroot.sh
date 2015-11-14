@@ -77,7 +77,7 @@ modprobe overlay
 # create otherwise
 echo $cfile 
 if [[ ! -f $cfile ]]; then
-   truncate -s $csize empty
+   truncate -s $csize $cfile
    mkfs.ext4 -qF $cfile
 fi
 
